@@ -658,7 +658,7 @@ class CategoryCore extends ObjectModel
      * @param int|bool $idLang Language ID
      *                         `false` if language filter should not be applied
      * @param bool $active Only return active categories
-     * @param null $groups
+     * @param array|null $groups
      * @param bool $useShopRestriction Restrict to current Shop
      * @param string $sqlFilter Additional SQL clause(s) to filter results
      * @param string $orderBy Change the default order by
@@ -1604,6 +1604,34 @@ class CategoryCore extends ObjectModel
 		WHERE c.`id_category` = ' . (int) $idCategory);
 
         return isset($row['id_category']);
+    }
+
+    /**
+     * Check if all categories by provided ids are present in database.
+     * If at least one is missing return false
+     *
+     * @param int[] $categoryIds
+     *
+     * @return bool
+     *
+     * @throws PrestaShopDatabaseException
+     */
+    public static function categoriesExists(array $categoryIds): bool
+    {
+        if (empty($categoryIds)) {
+            return false;
+        }
+
+        $categoryIds = array_map('intval', array_unique($categoryIds, SORT_REGULAR));
+        $categoryIdsFormatted = implode(',', $categoryIds);
+
+        $result = Db::getInstance()->query('
+            SELECT COUNT(c.id_category) as categories_found
+            FROM ' . _DB_PREFIX_ . 'category c
+            WHERE c.id_category IN (' . $categoryIdsFormatted . ')
+        ')->fetch();
+
+        return count($categoryIds) === (int) $result['categories_found'];
     }
 
     /**

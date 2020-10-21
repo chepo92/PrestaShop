@@ -26,13 +26,22 @@
 
 namespace Tests\Integration\Behaviour\Features\Context;
 
+use Address;
 use AppKernel;
 use Cache;
+use Carrier;
+use Cart;
+use CartRule;
+use Category;
 use Context;
+use Currency;
 use Employee;
+use Language;
 use LegacyTests\PrestaShopBundle\Utils\DatabaseCreator;
 use Pack;
+use Product;
 use Symfony\Component\DependencyInjection\ContainerInterface;
+use TaxManagerFactory;
 
 class CommonFeatureContext extends AbstractPrestaShopFeatureContext
 {
@@ -98,12 +107,44 @@ class CommonFeatureContext extends AbstractPrestaShopFeatureContext
     }
 
     /**
+     * @AfterFeature @clear-downloads-after-feature
+     */
+    public static function clearDownloads(): void
+    {
+        $filesToSkip = [
+            _PS_DOWNLOAD_DIR_ . 'index.php',
+            _PS_DOWNLOAD_DIR_ . '.htaccess',
+        ];
+
+        foreach (glob(_PS_DOWNLOAD_DIR_ . '*') as $file) {
+            if (is_file($file) && !in_array($file, $filesToSkip)) {
+                unlink($file);
+            }
+        }
+    }
+
+    /**
      * @AfterFeature @clear-cache-after-feature
      */
-    public static function clearCache()
+    public static function clearCacheAfterFeature()
     {
-        Cache::clear();
-        Pack::resetStaticCache();
+        self::clearCache();
+    }
+
+    /**
+     * @BeforeFeature @clear-cache-before-feature
+     */
+    public static function clearCacheBeforeFeature()
+    {
+        self::clearCache();
+    }
+
+    /**
+     * @BeforeScenario @clear-cache-before-scenario
+     */
+    public static function clearCacheBeforeScenario()
+    {
+        self::clearCache();
     }
 
     /**
@@ -125,5 +166,24 @@ class CommonFeatureContext extends AbstractPrestaShopFeatureContext
     public function clearEntityManager()
     {
         $this::getContainer()->get('doctrine.orm.entity_manager')->clear();
+    }
+
+    /**
+     * Clears cache
+     */
+    private static function clearCache(): void
+    {
+        Address::resetStaticCache();
+        Cache::clear();
+        Carrier::resetStaticCache();
+        Cart::resetStaticCache();
+        CartRule::resetStaticCache();
+        Category::resetStaticCache();
+        Pack::resetStaticCache();
+        Product::resetStaticCache();
+        Language::resetCache();
+        Currency::resetStaticCache();
+        TaxManagerFactory::resetStaticCache();
+        SharedStorage::getStorage()->clean();
     }
 }

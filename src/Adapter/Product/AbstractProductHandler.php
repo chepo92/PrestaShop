@@ -1,11 +1,12 @@
 <?php
 /**
- * 2007-2020 PrestaShop SA and Contributors
+ * Copyright since 2007 PrestaShop SA and Contributors
+ * PrestaShop is an International Registered Trademark & Property of PrestaShop SA
  *
  * NOTICE OF LICENSE
  *
  * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
+ * that is bundled with this package in the file LICENSE.md.
  * It is also available through the world-wide-web at this URL:
  * https://opensource.org/licenses/OSL-3.0
  * If you did not receive a copy of the license and are unable to
@@ -16,18 +17,19 @@
  *
  * Do not edit or add to this file if you wish to upgrade PrestaShop to newer
  * versions in the future. If you wish to customize PrestaShop for your
- * needs please refer to https://www.prestashop.com for more information.
+ * needs please refer to https://devdocs.prestashop.com/ for more information.
  *
- * @author    PrestaShop SA <contact@prestashop.com>
- * @copyright 2007-2020 PrestaShop SA and Contributors
+ * @author    PrestaShop SA and Contributors <contact@prestashop.com>
+ * @copyright Since 2007 PrestaShop SA and Contributors
  * @license   https://opensource.org/licenses/OSL-3.0 Open Software License (OSL 3.0)
- * International Registered Trademark & Property of PrestaShop SA
  */
 
 declare(strict_types=1);
 
 namespace PrestaShop\PrestaShop\Adapter\Product;
 
+use ObjectModel;
+use PrestaShop\PrestaShop\Core\Domain\Product\Exception\CannotUpdateProductException;
 use PrestaShop\PrestaShop\Core\Domain\Product\Exception\ProductConstraintException;
 use PrestaShop\PrestaShop\Core\Domain\Product\Exception\ProductException;
 use PrestaShop\PrestaShop\Core\Domain\Product\Exception\ProductNotFoundException;
@@ -49,6 +51,8 @@ abstract class AbstractProductHandler
     protected $fieldsToUpdate = [];
 
     /**
+     * @todo: to be removed when all usecases are replaced by ObjectModelProvider
+     *
      * @param ProductId $productId
      *
      * @return Product
@@ -65,13 +69,13 @@ abstract class AbstractProductHandler
 
             if ((int) $product->id !== $productIdValue) {
                 throw new ProductNotFoundException(sprintf(
-                    'Product #%s was not found',
+                    'Product #%d was not found',
                     $productIdValue
                 ));
             }
         } catch (PrestaShopException $e) {
             throw new ProductException(
-                sprintf('Error occurred when trying to get product #%s', $productId),
+                sprintf('Error occurred when trying to get product #%d', $productId),
                 0,
                 $e
             );
@@ -82,7 +86,7 @@ abstract class AbstractProductHandler
 
     /**
      * @todo: product name is not required. Fix that? issue: #19441 for discussion
-     *
+     * @todo: to be removed when all usecases are replaced by ObjectModelPersister & validator
      * Validates Product object model multilingual property using legacy validation
      *
      * @param Product $product
@@ -97,7 +101,7 @@ abstract class AbstractProductHandler
             if (true !== $product->validateField($field, $value, $langId)) {
                 throw new ProductConstraintException(
                     sprintf(
-                        'Invalid localized product %s for language with id "%s"',
+                        'Invalid localized product %d for language with id "%d"',
                         $field,
                         $langId
                     ),
@@ -108,6 +112,7 @@ abstract class AbstractProductHandler
     }
 
     /**
+     * @todo: to be removed when all usecases are replaced by ObjectModelPersister & validator
      * Validates Product object model property using legacy validation
      *
      * @param Product $product
@@ -126,6 +131,56 @@ abstract class AbstractProductHandler
                     $product->{$field}
                 ),
                 $errorCode
+            );
+        }
+    }
+
+    /**
+     * @todo: to be removed when all usecases are replaced by ObjectModelPersister & validator
+     *
+     * @param Product $product
+     * @param int $errorCode
+     *
+     * @throws CannotUpdateProductException
+     * @throws ProductException
+     */
+    protected function performUpdate(Product $product, int $errorCode): void
+    {
+        try {
+            if (false === $product->update()) {
+                throw new CannotUpdateProductException(
+                    sprintf('Failed to update product #%d', $product->id),
+                    $errorCode
+                );
+            }
+        } catch (PrestaShopException $e) {
+            throw new ProductException(
+                sprintf('Error occurred when trying to update product #%d', $product->id),
+                0,
+                $e
+            );
+        }
+    }
+
+    /**
+     * @todo: to be removes when all usecases are replaced by ObjectModelProvider->assertExists()
+     *
+     * @param string $entityName
+     * @param int $entityId
+     *
+     * @return bool
+     *
+     * @throws ProductException
+     */
+    protected function entityExists(string $entityName, int $entityId): bool
+    {
+        try {
+            return ObjectModel::existsInDatabase($entityId, $entityName);
+        } catch (PrestaShopException $e) {
+            throw new ProductException(
+                sprintf('Error occurred when trying to find %s with id %d', $entityName, $entityId),
+                0,
+                $e
             );
         }
     }

@@ -88,8 +88,8 @@ class ModuleZipManager
     {
         $this->initSource($source);
 
-        if ($this->getSource($source)->getName($source) !== null) {
-            return $this->getSource($source)->getName($source);
+        if ($this->getSource($source)->getName() !== null) {
+            return $this->getSource($source)->getName();
         }
 
         if (!file_exists($source)) {
@@ -111,6 +111,7 @@ class ModuleZipManager
             ->ignoreVCS(true);
 
         $validModuleStructure = false;
+        $moduleName = '';
         // We must have only one folder in the zip, which contains the module files
         if (iterator_count($directories->directories()) == 1) {
             $directories = iterator_to_array($directories);
@@ -171,7 +172,7 @@ class ModuleZipManager
     }
 
     /**
-     * @param $source
+     * @param string $source
      *
      * @return string|null
      */

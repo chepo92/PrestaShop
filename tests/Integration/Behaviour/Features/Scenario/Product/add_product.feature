@@ -1,5 +1,6 @@
 # ./vendor/bin/behat -c tests/Integration/Behaviour/behat.yml -s product --tags add
 @reset-database-before-feature
+@clear-cache-after-feature
 @add
 Feature: Add basic product from Back Office (BO)
   As a BO user
@@ -21,6 +22,7 @@ Feature: Add basic product from Back Office (BO)
       | is_virtual | true                 |
     Then product "product1" should have following values:
       | active           | false          |
+    Then product "product1" should have following options information:
       | condition        | new            |
     And product "product1" type should be virtual
     And product "product1" localized "name" should be "en-US:bottle of beer"

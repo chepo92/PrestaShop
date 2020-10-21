@@ -1,11 +1,12 @@
 <?php
 /**
- * 2007-2020 PrestaShop SA and Contributors
+ * Copyright since 2007 PrestaShop SA and Contributors
+ * PrestaShop is an International Registered Trademark & Property of PrestaShop SA
  *
  * NOTICE OF LICENSE
  *
  * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
+ * that is bundled with this package in the file LICENSE.md.
  * It is also available through the world-wide-web at this URL:
  * https://opensource.org/licenses/OSL-3.0
  * If you did not receive a copy of the license and are unable to
@@ -16,19 +17,18 @@
  *
  * Do not edit or add to this file if you wish to upgrade PrestaShop to newer
  * versions in the future. If you wish to customize PrestaShop for your
- * needs please refer to https://www.prestashop.com for more information.
+ * needs please refer to https://devdocs.prestashop.com/ for more information.
  *
- * @author    PrestaShop SA <contact@prestashop.com>
- * @copyright 2007-2020 PrestaShop SA and Contributors
+ * @author    PrestaShop SA and Contributors <contact@prestashop.com>
+ * @copyright Since 2007 PrestaShop SA and Contributors
  * @license   https://opensource.org/licenses/OSL-3.0 Open Software License (OSL 3.0)
- * International Registered Trademark & Property of PrestaShop SA
  */
 
 declare(strict_types=1);
 
 namespace PrestaShop\PrestaShop\Adapter\Product\CommandHandler;
 
-use PrestaShop\Decimal\Number;
+use PrestaShop\Decimal\DecimalNumber;
 use PrestaShop\PrestaShop\Adapter\Entity\TaxRulesGroup;
 use PrestaShop\PrestaShop\Adapter\Product\AbstractProductHandler;
 use PrestaShop\PrestaShop\Core\Domain\Product\Command\UpdateProductPricesCommand;
@@ -79,7 +79,7 @@ final class UpdateProductPricesHandler extends AbstractProductHandler implements
             return;
         }
 
-        $this->performUpdate($product);
+        $this->performUpdate($product, CannotUpdateProductException::FAILED_UPDATE_PRICES);
     }
 
     /**
@@ -124,7 +124,7 @@ final class UpdateProductPricesHandler extends AbstractProductHandler implements
         }
 
         if (null !== $command->getWholesalePrice()) {
-            $product->wholesale_price = (float) (string) $command->getWholesalePrice();
+            $product->wholesale_price = (string) $command->getWholesalePrice();
             $this->validateField($product, 'wholesale_price', ProductConstraintException::INVALID_WHOLESALE_PRICE);
             $this->fieldsToUpdate['wholesale_price'] = true;
         }
@@ -159,7 +159,7 @@ final class UpdateProductPricesHandler extends AbstractProductHandler implements
      */
     private function resetUnitPriceInfo(): void
     {
-        $zero = new Number('0');
+        $zero = new DecimalNumber('0');
         $this->setUnitPriceInfo($this->product, $zero, $zero);
     }
 
@@ -180,7 +180,7 @@ final class UpdateProductPricesHandler extends AbstractProductHandler implements
             if (!$taxRulesGroup->id) {
                 throw new ProductConstraintException(
                     sprintf(
-                        'Invalid tax rules group id "%s". Group doesn\'t exist',
+                        'Invalid tax rules group id "%d". Group doesn\'t exist',
                         $taxRulesGroupId
                     ),
                     ProductConstraintException::INVALID_TAX_RULES_GROUP_ID
@@ -189,7 +189,7 @@ final class UpdateProductPricesHandler extends AbstractProductHandler implements
         } catch (PrestaShopException $e) {
             throw new ProductException(
                 sprintf(
-                    'Error occurred when trying to load tax rules group #%s for product',
+                    'Error occurred when trying to load tax rules group #%d for product',
                     $taxRulesGroupId
                 ),
                 0,
@@ -200,12 +200,12 @@ final class UpdateProductPricesHandler extends AbstractProductHandler implements
 
     /**
      * @param Product $product
-     * @param Number $unitPrice
-     * @param Number $price
+     * @param DecimalNumber $unitPrice
+     * @param DecimalNumber $price
      *
      * @throws ProductConstraintException
      */
-    private function setUnitPriceInfo(Product $product, Number $unitPrice, ?Number $price): void
+    private function setUnitPriceInfo(Product $product, DecimalNumber $unitPrice, ?DecimalNumber $price): void
     {
         $this->validateUnitPrice($unitPrice);
 
@@ -215,7 +215,7 @@ final class UpdateProductPricesHandler extends AbstractProductHandler implements
 
         // If unit price or price is zero, then reset ratio to zero too
         if ($unitPrice->equalsZero() || $price->equalsZero()) {
-            $ratio = new Number('0');
+            $ratio = new DecimalNumber('0');
         } else {
             $ratio = $price->dividedBy($unitPrice);
         }
@@ -231,11 +231,11 @@ final class UpdateProductPricesHandler extends AbstractProductHandler implements
     /**
      * Unit price validation is not involved in legacy validation, so it is checked manually to have unsigned int value
      *
-     * @param Number $unitPrice
+     * @param DecimalNumber $unitPrice
      *
      * @throws ProductConstraintException
      */
-    private function validateUnitPrice(Number $unitPrice): void
+    private function validateUnitPrice(DecimalNumber $unitPrice): void
     {
         if ($unitPrice->isLowerThanZero()) {
             throw new ProductConstraintException(
@@ -244,35 +244,6 @@ final class UpdateProductPricesHandler extends AbstractProductHandler implements
                     $unitPrice
                 ),
                 ProductConstraintException::INVALID_UNIT_PRICE
-            );
-        }
-    }
-
-    /**
-     * @param Product $product
-     *
-     * @throws CannotUpdateProductException
-     */
-    private function performUpdate(Product $product): void
-    {
-        try {
-            if (false === $product->update()) {
-                throw new CannotUpdateProductException(
-                    sprintf(
-                        'Failed to update product #%s prices',
-                        $product->id
-                    ),
-                    CannotUpdateProductException::FAILED_UPDATE_PRICES
-                );
-            }
-        } catch (PrestaShopException $e) {
-            throw new CannotUpdateProductException(
-                sprintf(
-                    'Error occurred when trying to update product #%s prices',
-                    $product->id
-                ),
-                CannotUpdateProductException::FAILED_UPDATE_PRICES,
-                $e
             );
         }
     }

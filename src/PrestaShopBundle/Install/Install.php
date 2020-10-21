@@ -76,6 +76,11 @@ class Install extends AbstractInstall
     protected $bootstrapFile = null;
 
     /**
+     * @var array
+     */
+    public $xml_loader_ids = [];
+
+    /**
      * The path of the settings file we want to use for the installation.
      *
      * @var string
@@ -215,7 +220,7 @@ class Install extends AbstractInstall
     /**
      * Replace "parameters.yml" with "parameters.php" in "app/config".
      *
-     * @param $parameters
+     * @param array $parameters
      *
      * @return bool|int
      */
@@ -836,8 +841,8 @@ class Install extends AbstractInstall
             $employee->default_tab = 1;
             $employee->active = true;
             $employee->id_profile = 1;
-            $employee->id_lang = Configuration::get('PS_LANG_DEFAULT');
-            $employee->bo_menu = 1;
+            $employee->id_lang = (int) Configuration::get('PS_LANG_DEFAULT');
+            $employee->bo_menu = true;
             if (!$employee->add()) {
                 $this->setError($this->translator->trans('Cannot create admin account', [], 'Install'));
 
@@ -854,6 +859,7 @@ class Install extends AbstractInstall
             Configuration::updateGlobalValue('PS_SHOP_EMAIL', $data['admin_email']);
 
             $contacts = new PrestaShopCollection('Contact');
+            /** @var \Contact $contact */
             foreach ($contacts as $contact) {
                 $contact->email = $data['admin_email'];
                 $contact->update();
